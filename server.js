@@ -9,27 +9,20 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Set EJS as the view engine
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
-// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Store meeting rooms and participants
 const rooms = {};
 
-// Home page
 app.get('/', (req, res) => {
   res.render('index');
 });
 
-// Join page
 app.get('/join', (req, res) => {
   const { email = 'guest', code } = req.query;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     console.log(`Invalid email: ${email}`);
-    return res.render('join', { error: 'Please enter a valid email address.' });
+    return res.render('join', { error: 'Please enter a valid email.' });
   }
   if (code) {
     if (!/^[a-zA-Z0-9-]{6,36}$/.test(code)) {
@@ -43,16 +36,15 @@ app.get('/join', (req, res) => {
     console.log(`User ${email} joining room: ${code}`);
     res.render('meeting', { email, roomId: code });
   } else {
-    res.render('join', { error: req.query.code ? 'Please enter a meeting code.' : null });
+    res.render('join', { error: req.query.code ? 'Please enter a meeting code.' : '' });
   }
 });
 
-// Join page with URL parameters
 app.get('/join/:email/:code', (req, res) => {
   const { email, code } = req.params;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     console.log(`Invalid email: ${email}`);
-    return res.render('join', { error: 'Please enter a valid email address.' });
+    return res.render('join', { error: 'Please enter a valid email.' });
   }
   if (!/^[a-zA-Z0-9-]{6,36}$/.test(code)) {
     console.log(`Invalid meeting code: ${code}`);
@@ -66,7 +58,6 @@ app.get('/join/:email/:code', (req, res) => {
   res.render('meeting', { email, roomId: code });
 });
 
-// Create a new meeting
 app.get('/create', (req, res) => {
   const roomId = uuidv4();
   rooms[roomId] = { participants: [] };
@@ -74,7 +65,6 @@ app.get('/create', (req, res) => {
   res.redirect(`/join/guest/${roomId}`);
 });
 
-// WebSocket signaling
 io.on('connection', (socket) => {
   socket.on('join-room', ({ roomId, email }) => {
     socket.join(roomId);
@@ -84,7 +74,11 @@ io.on('connection', (socket) => {
     rooms[roomId].participants.push({ id: socket.id, email });
     console.log(`User ${email} (socket ${socket.id}) joined room: ${roomId}`);
 
-    // Notify other participants of new user
+    // Notify new user of existing participants
+    const existingParticipants = rooms[roomId].participants.filter(p => p.id !== socket.id);
+    socket.emit('existing-participants', existingParticipants);
+
+    // Notify others of new user
     socket.to(roomId).emit('user-connected', { id: socket.id, email });
 
     socket.on('offer', ({ sdp, target, sender }) => {
@@ -115,7 +109,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
