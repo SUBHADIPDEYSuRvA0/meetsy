@@ -22,16 +22,25 @@ async function startMeeting(roomId, email) {
     mainStream = localStream;
     const localVideo = document.getElementById('local-video');
     localVideo.srcObject = localStream;
-    console.log('Local stream initialized');
+    localVideo.muted = true; // Prevent local audio feedback
+    localVideo.playsInline = true;
+    console.log('Local stream initialized and assigned to local-video');
   } catch (err) {
     console.error('Error accessing media devices:', err);
     alert('Failed to access camera and microphone. Please check permissions.');
     return;
   }
 
-  socket.on('user-connected', async ({ id, email: remoteEmail }) => {
-    console.log(`User connected: ${remoteEmail} (socket ${id})`);
-    await createPeerConnection(id, remoteEmail, roomId, true);
+  socket.on('existing-participants', (participants) => {
+    console.log('Existing participants:', participants);
+    participants.forEach(({ id, email }) => {
+      createPeerConnection(id, email, roomId, true);
+    });
+  });
+
+  socket.on('user-connected', ({ id, email }) => {
+    console.log(`User connected: ${email} (socket ${id})`);
+    createPeerConnection(id, email, roomId, false); // New user initiates offer
   });
 
   socket.on('offer', async ({ sdp, callerId, callerEmail }) => {
@@ -98,6 +107,7 @@ async function startMeeting(roomId, email) {
   });
 
   socket.on('chat-message', ({ email, message }) => {
+    console.log(`Chat message from ${email}: ${message}`);
     const chatContainer = document.getElementById('chat-container');
     const chatPanel = document.getElementById('chat-panel');
     const chatBadge = document.getElementById('chat-badge');
@@ -120,12 +130,12 @@ async function createPeerConnection(id, email, roomId, initiateOffer) {
   }
 
   const peerConnection = new RTCPeerConnection(configuration);
-  peerConnections[id] = { peerConnection, email, stream: null };
+  peerConnections[id] = { peerConnection, email, stream: null, iceCandidates: [] };
 
   // Add local tracks
   localStream.getTracks().forEach(track => {
     peerConnection.addTrack(track, localStream);
-    console.log(`Added track ${track.kind} to peer ${id}`);
+    console.log(`Added ${track.kind} track to peer ${id}`);
   });
 
   // Create video container
@@ -133,7 +143,6 @@ async function createPeerConnection(id, email, roomId, initiateOffer) {
   remoteVideo.id = `video-${id}`;
   remoteVideo.autoplay = true;
   remoteVideo.playsInline = true;
-  remoteVideo.className = 'watermark';
   const videoContainer = document.createElement('div');
   videoContainer.className = 'video-container';
   videoContainer.id = `container-${id}`;
@@ -141,19 +150,21 @@ async function createPeerConnection(id, email, roomId, initiateOffer) {
   videoContainer.appendChild(remoteVideo);
   videoContainer.onclick = () => swapVideo(id);
   document.getElementById('participants').appendChild(videoContainer);
+  console.log(`Created video container for ${id}`);
 
   // Handle remote tracks
   peerConnection.ontrack = (event) => {
-    console.log(`Received track from ${id}:`, event);
+    console.log(`Received track from ${id}: ${event.track.kind}`);
     if (!peerConnections[id].stream) {
-      peerConnections[id].stream = event.streams[0];
-      remoteVideo.srcObject = peerConnections[id].stream;
-      peerConnections[id].stream.getAudioTracks().forEach(track => {
-        track.enabled = true;
-        console.log(`Enabled audio track for ${id}`);
-      });
-      console.log(`Assigned stream to video-${id}`);
+      peerConnections[id].stream = new MediaStream();
     }
+    peerConnections[id].stream.addTrack(event.track);
+    if (event.track.kind === 'audio') {
+      event.track.enabled = true;
+      console.log(`Enabled audio track for ${id}`);
+    }
+    remoteVideo.srcObject = peerConnections[id].stream;
+    console.log(`Assigned stream to video-${id}`);
   };
 
   // Handle ICE candidates
@@ -183,7 +194,6 @@ async function createPeerConnection(id, email, roomId, initiateOffer) {
   }
 }
 
-// Swap video to main screen
 function swapVideo(id) {
   const mainVideo = document.getElementById('local-video');
   const newStream = id === 'local' ? localStream : peerConnections[id]?.stream;
@@ -191,7 +201,6 @@ function swapVideo(id) {
     console.warn(`No stream found for ${id}`);
     return;
   }
-
   mainVideo.srcObject = newStream;
   mainStream = newStream;
   mainStreamId = id;
@@ -199,7 +208,6 @@ function swapVideo(id) {
   updateSelectedVideo(id);
 }
 
-// Update selected video highlight
 function updateSelectedVideo(id) {
   document.querySelectorAll('.video-container').forEach(container => {
     container.classList.remove('selected');
@@ -210,7 +218,6 @@ function updateSelectedVideo(id) {
   }
 }
 
-// Toggle video
 function toggleVideo() {
   const enabled = localStream.getVideoTracks()[0].enabled;
   localStream.getVideoTracks()[0].enabled = !enabled;
@@ -221,7 +228,6 @@ function toggleVideo() {
   console.log(`Video toggled: ${!enabled ? 'on' : 'off'}`);
 }
 
-// Toggle audio (local only)
 function toggleAudio() {
   const enabled = localStream.getAudioTracks()[0].enabled;
   localStream.getAudioTracks()[0].enabled = !enabled;
@@ -232,14 +238,12 @@ function toggleAudio() {
   console.log(`Audio toggled: ${!enabled ? 'on' : 'off'}`);
 }
 
-// Rotate camera
 function rotateCamera() {
   rotationAngle = (rotationAngle + 90) % 360;
   document.getElementById('local-video').style.transform = `rotate(${rotationAngle}deg)`;
   console.log(`Rotated camera to ${rotationAngle}deg`);
 }
 
-// Share screen
 async function shareScreen() {
   try {
     const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
@@ -268,7 +272,6 @@ async function shareScreen() {
   }
 }
 
-// Record meeting
 function toggleRecording() {
   if (!isRecording) {
     const canvas = document.createElement('canvas');
@@ -277,13 +280,23 @@ function toggleRecording() {
     canvas.height = 720;
     const streams = [mainStream, ...Object.values(peerConnections).map(p => p.stream)].filter(s => s);
     let xOffset = 0;
-    streams.forEach(stream => {
+    const videos = streams.map(stream => {
       const video = document.createElement('video');
       video.srcObject = stream;
       video.autoplay = true;
+      return video;
+    });
+    function draw() {
+      xOffset = 0;
+      videos.forEach(video => {
+        ctx.drawImage(video, xOffset, 0, canvas.width / videos.length, canvas.height);
+        xOffset += canvas.width / videos.length;
+      });
+      requestAnimationFrame(draw);
+    }
+    videos.forEach(video => {
       video.onloadedmetadata = () => {
-        ctx.drawImage(video, xOffset, 0, canvas.width / streams.length, canvas.height);
-        xOffset += canvas.width / streams.length;
+        draw();
       };
     });
     const canvasStream = canvas.captureStream();
@@ -313,16 +326,14 @@ function toggleRecording() {
   }
 }
 
-// Hangup
 function hangup() {
-  localStream.getTracks().forEach(track => track.stop());
+  localStream?.getTracks().forEach(track => track.stop());
   Object.values(peerConnections).forEach(({ peerConnection }) => peerConnection.close());
   socket.disconnect();
   window.location.href = '/';
   console.log('Hung up');
 }
 
-// Send chat message
 function sendMessage() {
   const input = document.getElementById('chat-input');
   const message = input.value.trim();
@@ -333,7 +344,6 @@ function sendMessage() {
   }
 }
 
-// Toggle chat panel
 function toggleChat() {
   const chatPanel = document.getElementById('chat-panel');
   const chatBadge = document.getElementById('chat-badge');
