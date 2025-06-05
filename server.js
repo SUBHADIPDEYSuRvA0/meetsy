@@ -83,21 +83,27 @@ io.on('connection', (socket) => {
     }
     rooms[roomId].participants.push({ id: socket.id, email });
     console.log(`User ${email} (socket ${socket.id}) joined room: ${roomId}`);
+
+    // Notify other participants of new user
     socket.to(roomId).emit('user-connected', { id: socket.id, email });
 
-    socket.on('offer', (payload) => {
-      io.to(payload.target).emit('offer', payload);
+    socket.on('offer', ({ sdp, target, sender }) => {
+      console.log(`Offer from ${sender} to ${target} in room ${roomId}`);
+      io.to(target).emit('offer', { sdp, callerId: sender, callerEmail: email });
     });
 
-    socket.on('answer', (payload) => {
-      io.to(payload.target).emit('answer', payload);
+    socket.on('answer', ({ sdp, target, sender }) => {
+      console.log(`Answer from ${sender} to ${target} in room ${roomId}`);
+      io.to(target).emit('answer', { sdp, callerId: sender });
     });
 
-    socket.on('ice-candidate', (payload) => {
-      io.to(payload.target).emit('ice-candidate', payload);
+    socket.on('ice-candidate', ({ candidate, target, sender }) => {
+      console.log(`ICE candidate from ${sender} to ${target} in room ${roomId}`);
+      io.to(target).emit('ice-candidate', { candidate, callerId: sender });
     });
 
     socket.on('chat-message', (message) => {
+      console.log(`Chat message from ${email} in room ${roomId}: ${message}`);
       io.to(roomId).emit('chat-message', { email, message });
     });
 
