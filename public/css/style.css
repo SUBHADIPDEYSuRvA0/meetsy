@@ -151,12 +151,14 @@ body {
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  min-height: 300px; /* Ensure minimum height for laptops */
 }
 
 #local-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block; /* Ensure video is visible */
 }
 
 .participants-sidebar {
@@ -166,6 +168,7 @@ body {
   padding: 10px;
   overflow-y: auto;
   border-radius: 8px;
+  min-width: 200px; /* Prevent sidebar collapse */
 }
 
 .participants-sidebar h3 {
@@ -198,6 +201,7 @@ body {
   height: 100%;
   object-fit: cover;
   border-radius: 8px;
+  display: block; /* Ensure video is visible */
 }
 
 .video-container p {
@@ -385,6 +389,7 @@ body {
   .main-video {
     grid-column: 1;
     grid-row: 1;
+    min-height: 200px;
   }
 
   .participants-sidebar {
@@ -394,6 +399,7 @@ body {
     flex-direction: row;
     overflow-x: auto;
     padding: 5px;
+    min-height: 80px;
   }
 
   .video-container {
