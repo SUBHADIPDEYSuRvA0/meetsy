@@ -1,0 +1,443 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+body {
+  background-color: #1e1e1e;
+  color: #fff;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+  background: linear-gradient(135deg, #1a73e8, #0d47a1);
+}
+
+.card {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+}
+
+.card.glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+}
+
+.card h1 {
+  font-size: 2.2rem;
+  margin-bottom: 1rem;
+}
+
+.card p {
+  margin-bottom: 1.5rem;
+  color: #ccc;
+}
+
+.home-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.8rem;
+  background-color: #1a73e8;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+}
+
+.btn.primary {
+  background-color: #0d47a1;
+}
+
+.btn:hover {
+  background-color: #1557b0;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  max-width: 100%;
+}
+
+.form-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.form-group input {
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 1rem;
+  background: transparent;
+  color: #fff;
+}
+
+.form-group input::placeholder {
+  color: #ccc;
+}
+
+.error {
+  color: #ff4d4f;
+  margin-bottom: 1rem;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.meeting-container {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  grid-template-rows: auto 80px;
+  height: 100vh;
+  gap: 10px;
+  padding: 10px;
+  background-color: #2c2c2c;
+}
+
+.main-video {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  background-color: #000;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+#local-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.participants-sidebar {
+  grid-column: 2;
+  grid-row: 1;
+  background-color: #333;
+  padding: 10px;
+  overflow-y: auto;
+  border-radius: 8px;
+}
+
+.participants-sidebar h3 {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+  color: #1a73e8;
+}
+
+.video-container {
+  position: relative;
+  width: 100%;
+  height: 100px;
+  margin-bottom: 10px;
+  background-color: #000;
+  border-radius: 8px;
+  transition: transform 0.2s;
+}
+
+.video-container:hover {
+  transform: scale(1.02);
+}
+
+.video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.video-container p {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  color: white;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 3px 8px;
+  font-size: 0.8rem;
+  border-radius: 3px;
+}
+
+.watermark::after {
+  content: 'Fitetse Meet';
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  background: linear-gradient(45deg, #1a73e8, #0d47a1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  opacity: 0.7;
+  font-size: 1.3rem;
+  font-weight: bold;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+.controls {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  background-color: rgba(0, 0, 0, 0.85);
+  padding: 10px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 220px;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.controls button {
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.controls button:hover {
+  background-color: #1557b0;
+  transform: scale(1.15);
+}
+
+.controls button.off {
+  background-color: #ff4d4f;
+}
+
+.controls button i {
+  transition: transform 0.3s;
+}
+
+.controls button:hover i {
+  transform: rotate(360deg);
+}
+
+.chat-toggle-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.chat-toggle-btn:hover {
+  background-color: #1557b0;
+  transform: scale(1.15);
+}
+
+.chat-toggle-btn .badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #ff4d4f;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  display: none;
+}
+
+.chat-toggle-btn.has-messages .badge {
+  display: block;
+}
+
+.chat-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 100%;
+  background-color: #333;
+  display: none;
+  flex-direction: column;
+  border-radius: 8px 0 0 8px;
+  box-shadow: -4px 0 15px rgba(0, 0, 0, 0.4);
+}
+
+.chat-panel.active {
+  display: flex;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: #1a73e8;
+  color: white;
+  border-radius: 8px 0 0 0;
+}
+
+.chat-header button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.chat-header button:hover {
+  color: #ddd;
+}
+
+#chat-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  background-color: #3c3c3c;
+}
+
+#chat-container p {
+  margin-bottom: 10px;
+  color: #ddd;
+  background-color: #4a4a4a;
+  padding: 8px;
+  border-radius: 5px;
+}
+
+#chat-input {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background-color: #555;
+  color: white;
+  outline: none;
+  border-radius: 0 0 8px 8px;
+}
+
+#chat-input::placeholder {
+  color: #ccc;
+}
+
+@media (max-width: 768px) {
+  .meeting-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .main-video {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .participants-sidebar {
+    grid-column: 1;
+    grid-row: 2;
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 5px;
+  }
+
+  .video-container {
+    width: 100px;
+    height: 70px;
+    flex-shrink: 0;
+  }
+
+  .controls {
+    right: 0;
+    border-radius: 8px;
+  }
+
+  .chat-panel {
+    width: 100%;
+    height: 60%;
+    bottom: 0;
+    top: auto;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .chat-toggle-btn {
+    bottom: 90px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 1.2rem;
+  }
+
+  .card h1 {
+    font-size: 1.8rem;
+  }
+
+  .home-buttons {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .controls button {
+    padding: 10px;
+    font-size: 1rem;
+  }
+
+  .video-container {
+    width: 80px;
+    height: 50px;
+  }
+
+  .watermark::after {
+    font-size: 0.9rem;
+  }
+}
