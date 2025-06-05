@@ -6,6 +6,8 @@ let mediaRecorder;
 let recordedChunks = [];
 let rotationAngle = 0;
 let unreadMessages = 0;
+let mainStream = null; // Tracks the current main video stream
+let mainStreamId = 'local'; // Tracks the ID of the main stream ('local' or socket ID)
 
 const configuration = {
   iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
@@ -16,11 +18,12 @@ async function startMeeting(roomId, email) {
 
   // Get local media
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  mainStream = localStream;
   document.getElementById('local-video').srcObject = localStream;
 
   socket.on('user-connected', async ({ id, email }) => {
     const peerConnection = new RTCPeerConnection(configuration);
-    peerConnections[id] = { peerConnection, email };
+    peerConnections[id] = { peerConnection, email, stream: null };
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
     const offer = await peerConnection.createOffer();
@@ -33,12 +36,21 @@ async function startMeeting(roomId, email) {
     remoteVideo.className = 'watermark';
     const videoContainer = document.createElement('div');
     videoContainer.className = 'video-container';
+    videoContainer.id = `container-${id}`;
     videoContainer.innerHTML = `<p>${email}</p>`;
     videoContainer.appendChild(remoteVideo);
+    videoContainer.onclick = () => swapVideo(id);
     document.getElementById('participants').appendChild(videoContainer);
 
     peerConnection.ontrack = (event) => {
-      remoteVideo.srcObject = event.streams[0];
+      if (!peerConnections[id].stream) {
+        peerConnections[id].stream = event.streams[0];
+        remoteVideo.srcObject = peerConnections[id].stream;
+        // Ensure remote audio is audible
+        peerConnections[id].stream.getAudioTracks().forEach(track => {
+          track.enabled = true;
+        });
+      }
     };
 
     peerConnection.onicecandidate = (event) => {
@@ -50,7 +62,7 @@ async function startMeeting(roomId, email) {
 
   socket.on('offer', async (payload) => {
     const peerConnection = new RTCPeerConnection(configuration);
-    peerConnections[payload.callerId] = { peerConnection, email: payload.callerEmail };
+    peerConnections[payload.callerId] = { peerConnection, email: payload.callerEmail, stream: null };
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
     await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.sdp));
     const answer = await peerConnection.createAnswer();
@@ -63,12 +75,21 @@ async function startMeeting(roomId, email) {
     remoteVideo.className = 'watermark';
     const videoContainer = document.createElement('div');
     videoContainer.className = 'video-container';
+    videoContainer.id = `container-${payload.callerId}`;
     videoContainer.innerHTML = `<p>${payload.callerEmail}</p>`;
     videoContainer.appendChild(remoteVideo);
+    videoContainer.onclick = () => swapVideo(payload.callerId);
     document.getElementById('participants').appendChild(videoContainer);
 
     peerConnection.ontrack = (event) => {
-      remoteVideo.srcObject = event.streams[0];
+      if (!peerConnections[payload.callerId].stream) {
+        peerConnections[payload.callerId].stream = event.streams[0];
+        remoteVideo.srcObject = peerConnections[payload.callerId].stream;
+        // Ensure remote audio is audible
+        peerConnections[payload.callerId].stream.getAudioTracks().forEach(track => {
+          track.enabled = true;
+        });
+      }
     };
 
     peerConnection.onicecandidate = (event) => {
@@ -91,9 +112,16 @@ async function startMeeting(roomId, email) {
   socket.on('user-disconnected', (id) => {
     if (peerConnections[id]) {
       peerConnections[id].peerConnection.close();
+      if (mainStreamId === id) {
+        // Revert to local stream if the main video was the disconnected user
+        mainStream = localStream;
+        mainStreamId = 'local';
+        document.getElementById('local-video').srcObject = localStream;
+        updateSelectedVideo('local');
+      }
+      const videoContainer = document.getElementById(`container-${id}`);
+      if (videoContainer) videoContainer.remove();
       delete peerConnections[id];
-      const video = document.getElementById(`video-${id}`);
-      if (video) video.parentElement.remove();
     }
   });
 
@@ -113,6 +141,34 @@ async function startMeeting(roomId, email) {
   });
 }
 
+// Swap video to main screen
+function swapVideo(id) {
+  const mainVideo = document.getElementById('local-video');
+  const newStream = id === 'local' ? localStream : peerConnections[id].stream;
+  if (!newStream) return;
+
+  // Update main video
+  mainVideo.srcObject = newStream;
+  mainStream = newStream;
+  mainStreamId = id;
+
+  // Update UI to highlight selected video
+  updateSelectedVideo(id);
+}
+
+// Update selected video highlight
+function updateSelectedVideo(id) {
+  // Remove 'selected' class from all containers
+  document.querySelectorAll('.video-container').forEach(container => {
+    container.classList.remove('selected');
+  });
+  // Add 'selected' class to the clicked container
+  const selectedContainer = id === 'local' ? null : document.getElementById(`container-${id}`);
+  if (selectedContainer) {
+    selectedContainer.classList.add('selected');
+  }
+}
+
 // Toggle video
 function toggleVideo() {
   const enabled = localStream.getVideoTracks()[0].enabled;
@@ -123,7 +179,7 @@ function toggleVideo() {
   btn.querySelector('i').classList.toggle('fa-video-slash', !enabled);
 }
 
-// Toggle audio
+// Toggle audio (local only)
 function toggleAudio() {
   const enabled = localStream.getAudioTracks()[0].enabled;
   localStream.getAudioTracks()[0].enabled = !enabled;
@@ -147,13 +203,19 @@ async function shareScreen() {
     const videoTrack = localStream.getVideoTracks()[0];
     peerConnection.getSenders().find(sender => sender.track.kind === 'video').replaceTrack(screenTrack);
   });
-  document.getElementById('local-video').srcObject = screenStream;
+  if (mainStreamId === 'local') {
+    mainStream = screenStream;
+    document.getElementById('local-video').srcObject = screenStream;
+  }
   screenTrack.onended = () => {
     Object.values(peerConnections).forEach(({ peerConnection }) => {
       const videoTrack = localStream.getVideoTracks()[0];
       peerConnection.getSenders().find(sender => sender.track.kind === 'video').replaceTrack(videoTrack);
     });
-    document.getElementById('local-video').srcObject = localStream;
+    if (mainStreamId === 'local') {
+      mainStream = localStream;
+      document.getElementById('local-video').srcObject = localStream;
+    }
   };
 }
 
@@ -164,7 +226,7 @@ function toggleRecording() {
     const ctx = canvas.getContext('2d');
     canvas.width = 1280;
     canvas.height = 720;
-    const streams = [localStream, ...Object.values(peerConnections).map(p => p.peerConnection.getRemoteStreams()[0])].filter(s => s);
+    const streams = [mainStream, ...Object.values(peerConnections).map(p => p.stream)].filter(s => s);
     let xOffset = 0;
     streams.forEach(stream => {
       const video = document.createElement('video');
