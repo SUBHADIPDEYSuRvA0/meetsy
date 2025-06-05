@@ -27,37 +27,43 @@ app.get('/', (req, res) => {
 // Join page
 app.get('/join', (req, res) => {
   const { email = 'guest', code } = req.query;
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    console.log(`Invalid email: ${email}`);
+    return res.render('join', { error: 'Please enter a valid email address.' });
+  }
   if (code) {
     if (!/^[a-zA-Z0-9-]{6,36}$/.test(code)) {
-      console.log(`Invalid calling ID: ${code}`);
-      res.render('join', { error: 'Invalid meeting code. Use 6-36 alphanumeric characters or hyphens.' });
-    } else {
-      if (!rooms[code]) {
-        rooms[code] = { participants: [] };
-        console.log(`Created room: ${code}`);
-      }
-      console.log(`User ${email} joining room: ${code}`);
-      res.render('meeting', { email, roomId: code });
+      console.log(`Invalid meeting code: ${code}`);
+      return res.render('join', { error: 'Invalid meeting code. Use 6-36 alphanumeric characters or hyphens.' });
     }
-  } else {
-    res.render('join', { error: req.query.code ? 'Invalid meeting code.' : null });
-  }
-});
-
-// Join page with URL parameters
-app.get('/join/:email/:code', (req, res) => {
-  const { email, code } = req.params;
-  if (!/^[a-zA-Z0-9-]{6,36}$/.test(code)) {
-    console.log(`Invalid calling ID: ${code}`);
-    res.render('join', { error: 'Invalid meeting code. Use 6-36 alphanumeric characters or hyphens.' });
-  } else {
     if (!rooms[code]) {
       rooms[code] = { participants: [] };
       console.log(`Created room: ${code}`);
     }
     console.log(`User ${email} joining room: ${code}`);
     res.render('meeting', { email, roomId: code });
+  } else {
+    res.render('join', { error: req.query.code ? 'Please enter a meeting code.' : null });
   }
+});
+
+// Join page with URL parameters
+app.get('/join/:email/:code', (req, res) => {
+  const { email, code } = req.params;
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    console.log(`Invalid email: ${email}`);
+    return res.render('join', { error: 'Please enter a valid email address.' });
+  }
+  if (!/^[a-zA-Z0-9-]{6,36}$/.test(code)) {
+    console.log(`Invalid meeting code: ${code}`);
+    return res.render('join', { error: 'Invalid meeting code. Use 6-36 alphanumeric characters or hyphens.' });
+  }
+  if (!rooms[code]) {
+    rooms[code] = { participants: [] };
+    console.log(`Created room: ${code}`);
+  }
+  console.log(`User ${email} joining room: ${code}`);
+  res.render('meeting', { email, roomId: code });
 });
 
 // Create a new meeting
@@ -76,7 +82,7 @@ io.on('connection', (socket) => {
       rooms[roomId] = { participants: [] };
     }
     rooms[roomId].participants.push({ id: socket.id, email });
-    console.log(`User ${email} joined room: ${roomId}`);
+    console.log(`User ${email} (socket ${socket.id}) joined room: ${roomId}`);
     socket.to(roomId).emit('user-connected', { id: socket.id, email });
 
     socket.on('offer', (payload) => {
@@ -98,7 +104,7 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
       rooms[roomId].participants = rooms[roomId].participants.filter(p => p.id !== socket.id);
       socket.to(roomId).emit('user-disconnected', socket.id);
-      console.log(`User ${email} left room: ${roomId}`);
+      console.log(`User ${email} (socket ${socket.id}) left room: ${roomId}`);
     });
   });
 });
