@@ -20,7 +20,7 @@ body {
   justify-content: center;
   height: 100%;
   padding: 20px;
-  background: linear-gradient(135deg, #1a73e8, #0d47a1);
+  background: linear-gradient(135deg, #003d17, #0da181);
 }
 
 .card {
@@ -29,6 +29,7 @@ body {
   padding: 2rem;
   border-radius: 15px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.18);
   text-align: center;
@@ -61,7 +62,7 @@ body {
   align-items: center;
   gap: 0.5rem;
   padding: 0.8rem 1.8rem;
-  background-color: #1a73e8;
+  background-color: #003d17;
   color: white;
   text-decoration: none;
   border-radius: 8px;
@@ -70,11 +71,11 @@ body {
 }
 
 .btn.primary {
-  background-color: #0d47a1;
+  background-color: #003d17;
 }
 
 .btn:hover {
-  background-color: #1557b0;
+  background-color: #003d17;
   transform: translateY(-3px);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
@@ -125,7 +126,7 @@ body {
   align-items: center;
   gap: 0.5rem;
   margin-top: 1rem;
-  color: #1a73e8;
+  color: #003d17;
   text-decoration: none;
 }
 
@@ -174,7 +175,7 @@ body {
 .participants-sidebar h3 {
   font-size: 1.1rem;
   margin-bottom: 10px;
-  color: #1a73e8;
+  color: #003d17;
 }
 
 .video-container {
@@ -193,7 +194,7 @@ body {
 }
 
 .video-container.selected {
-  border: 2px solid #1a73e8;
+  border: 2px solid #003d17;
 }
 
 .video-container video {
@@ -220,7 +221,7 @@ body {
   position: absolute;
   bottom: 15px;
   right: 15px;
-  background: linear-gradient(45deg, #1a73e8, #0d47a1);
+  background: linear-gradient(45deg, #003d17, #0da1a1);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -259,7 +260,7 @@ body {
 }
 
 .controls button:hover {
-  background-color: #1557b0;
+  background-color: #003d17;
   transform: scale(1.15);
 }
 
@@ -279,7 +280,7 @@ body {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background-color: #1a73e8;
+  background-color: #003d17;
   color: white;
   border: none;
   padding: 15px;
@@ -291,7 +292,7 @@ body {
 }
 
 .chat-toggle-btn:hover {
-  background-color: #1557b0;
+  background-color: #003d17;
   transform: scale(1.15);
 }
 
@@ -333,7 +334,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  background-color: #1a73e8;
+  background-color: #003d17;
   color: white;
   border-radius: 8px 0 0 0;
 }
